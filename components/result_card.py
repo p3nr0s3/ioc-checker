@@ -1,5 +1,6 @@
 """
-Reusable Streamlit UI components for IOC result rendering.
+UI components — Option B terminal aesthetic.
+Results rendered as dense table rows with expandable detail panels.
 """
 from __future__ import annotations
 
@@ -9,169 +10,196 @@ import streamlit as st
 
 from utils.ioc_detector import IOC_TYPE_LABELS, IOCType
 from utils.osint_api import OsintResult, SourceResult
-from utils.theme import VERDICT_COLORS, VERDICT_ICONS
+from utils.theme import VERDICT_COLORS, SOURCE_ABBR
 
 
-def _score_bar_html(score: float, verdict: str) -> str:
-    color = VERDICT_COLORS.get(verdict, "#78909C")
-    return f"""
-<div class="score-bar-container">
-  <div class="score-bar" style="width:{score}%; background:{color};"></div>
-</div>
-"""
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-
-def render_source_result(sr: SourceResult) -> None:
-    """Render a single source result inside an expander."""
-    icon  = VERDICT_ICONS.get(sr.verdict, "⚪")
-    color = VERDICT_COLORS.get(sr.verdict, "#78909C")
-
-    label = f"{icon} **{sr.source}** — `{sr.verdict.upper()}`"
-    if sr.score is not None:
-        label += f"  · score: **{sr.score:.0f}**"
-
-    with st.expander(label, expanded=False):
-        if sr.error:
-            st.error(f"Error: {sr.error}")
-            return
-
-        # Score bar
-        if sr.score is not None:
-            st.markdown(
-                _score_bar_html(sr.score, sr.verdict),
-                unsafe_allow_html=True,
-            )
-            st.caption(f"Threat score: {sr.score:.1f} / 100")
-
-        # Details grid
-        if sr.details:
-            items = [(k.replace("_", " ").title(), v) for k, v in sr.details.items()]
-            # Split into 2 columns
-            half = max(1, len(items) // 2 + len(items) % 2)
-            col1, col2 = st.columns(2)
-            for i, (k, v) in enumerate(items):
-                target = col1 if i < half else col2
-                with target:
-                    if isinstance(v, list):
-                        if v:
-                            st.markdown(
-                                f"**{k}**  \n`{'`, `'.join(str(x) for x in v)}`"
-                            )
-                    elif isinstance(v, bool):
-                        st.markdown(f"**{k}**: {'✅' if v else '—'}")
-                    elif v and str(v) != "—":
-                        st.markdown(f"**{k}**: `{v}`")
-
-        if sr.url:
-            st.markdown(
-                f'<a href="{sr.url}" target="_blank" style="color:var(--tint);'
-                f'font-size:0.75rem;text-decoration:none;">↗ View full report</a>',
-                unsafe_allow_html=True,
-            )
-
-
-def verdict_badge_html(verdict: str) -> str:
-    """Return HTML for a verdict badge span."""
-    icon = VERDICT_ICONS.get(verdict, "⚪")
-    return (
-        f'<span class="verdict-badge {verdict}">'
-        f'{icon} {verdict.upper()}'
-        f"</span>"
+def _verdict_cls(verdict: str) -> str:
+    return {"malicious": "mal", "suspicious": "sus", "clean": "cln"}.get(
+        verdict, "unk"
     )
 
 
-def render_ioc_result_card(result: OsintResult, expanded: bool = False) -> None:
-    """Render a full IOC result card."""
-    verdict = result.overall_verdict
-    ioc_label = IOC_TYPE_LABELS.get(result.ioc_type, "❓ Unknown")
-    checked_ts = time.strftime(
-        "%Y-%m-%d %H:%M UTC", time.gmtime(result.checked_at)
-    )
+def _score_color(verdict: str) -> str:
+    return VERDICT_COLORS.get(verdict, "#3A4060")
 
-    # ── Card header ───────────────────────────────────────────────
+
+def _src_sq_cls(verdict: str) -> str:
+    return {"malicious": "mal", "clean": "cln"}.get(verdict, "unk")
+
+
+def _abbr(source_name: str) -> str:
+    return SOURCE_ABBR.get(source_name, source_name[:2].upper())
+
+
+# ── Table header ──────────────────────────────────────────────────────────────
+
+def render_table_header() -> None:
     st.markdown(
-        f"""
-<div class="ioc-card {verdict}">
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
-    <div>
-      <div style="font-family:var(--font-mono);font-size:1.05rem;font-weight:600;
-                  color:var(--text-primary);word-break:break-all;">
-        {result.ioc}
-      </div>
-      <div style="margin-top:0.3rem;display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
-        <span style="font-family:var(--font-mono);font-size:0.7rem;
-                     color:var(--text-dim);background:var(--bg-elevated);
-                     padding:0.15rem 0.5rem;border-radius:3px;">
-          {ioc_label}
-        </span>
-        {verdict_badge_html(verdict)}
-      </div>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-dim);">
-        {checked_ts}
-      </div>
-      <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-secondary);
-                  margin-top:0.25rem;">
-        {result.malicious_count}/{result.source_count} sources flagged
-      </div>
-    </div>
-  </div>
+        """
+<div class="tc-thead">
+  <div class="tc-th">Indicator</div>
+  <div class="tc-th">Type</div>
+  <div class="tc-th">Threat score</div>
+  <div class="tc-th">Sources</div>
+  <div class="tc-th right">Verdict</div>
 </div>
 """,
         unsafe_allow_html=True,
     )
 
-    # ── Source results ─────────────────────────────────────────────
-    if result.sources:
-        for sr in result.sources:
-            render_source_result(sr)
-    else:
-        st.caption("No API sources were queried (check API key configuration).")
 
-    st.markdown("<hr style='margin:1rem 0;opacity:0.15;'>", unsafe_allow_html=True)
+# ── Single source card inside detail panel ────────────────────────────────────
+
+def _source_card_html(sr: SourceResult) -> str:
+    vcls  = _verdict_cls(sr.verdict)
+    vcolor = _score_color(sr.verdict)
+
+    header = f"""
+<div class="tc-src-card">
+  <div class="tc-src-header">
+    <div class="tc-src-vdot" style="background:{vcolor}"></div>
+    {sr.source}
+    {"— <span style='color:" + vcolor + ";font-size:9px'>" + sr.verdict.upper() + "</span>" if sr.verdict != "error" else ""}
+  </div>
+"""
+    if sr.error:
+        return header + f'<div style="font-size:10px;color:#FF6B6B">Error: {sr.error}</div></div>'
+
+    rows_html = ""
+
+    # Score row
+    if sr.score is not None:
+        rows_html += f"""
+<div class="tc-kv">
+  <span class="tc-kv-k">score</span>
+  <span class="tc-kv-v" style="color:{vcolor}">{sr.score:.0f}/100</span>
+</div>"""
+
+    # Key details — cap to most useful 6
+    priority_keys = [
+        "malicious", "suspicious", "undetected", "total_engines",
+        "confidence_score", "total_reports",
+        "pulse_count", "total_scans", "malicious_scans",
+        "country", "asn", "as_owner", "isp", "org",
+        "open_ports", "port_count", "vuln_count",
+        "meaningful_name", "type_description",
+    ]
+    shown = 0
+    for key in priority_keys:
+        if key not in sr.details or shown >= 6:
+            continue
+        val = sr.details[key]
+        if isinstance(val, list):
+            display = ", ".join(str(x) for x in val[:4]) if val else "—"
+        elif isinstance(val, bool):
+            display = "yes" if val else "no"
+        else:
+            display = str(val) if val not in (None, "", "—") else "—"
+        if display == "—":
+            continue
+        label = key.replace("_", " ")
+        rows_html += f"""
+<div class="tc-kv">
+  <span class="tc-kv-k">{label}</span>
+  <span class="tc-kv-v">{display}</span>
+</div>"""
+        shown += 1
+
+    link_html = ""
+    if sr.url:
+        link_html = f'<a class="tc-link" href="{sr.url}" target="_blank">↗ view report</a>'
+
+    return header + rows_html + link_html + "</div>"
 
 
-def render_summary_metrics(results: list[OsintResult]) -> None:
-    """Render top-line summary metrics row."""
+# ── Full result row + expandable detail ───────────────────────────────────────
+
+def render_result_row(result: OsintResult, idx: int) -> None:
+    """Render one table row + an expander with per-source detail cards."""
+    verdict  = result.overall_verdict
+    vcls     = _verdict_cls(verdict)
+    vcolor   = _score_color(verdict)
+    ioc_label = IOC_TYPE_LABELS.get(result.ioc_type, "?").split()[-1]  # short label
+
+    # Score = average of available source scores
+    scores = [s.score for s in result.sources if s.score is not None]
+    avg_score = sum(scores) / len(scores) if scores else 0.0
+
+    # Source squares HTML
+    src_squares = ""
+    all_sources = ["VirusTotal", "AbuseIPDB", "Shodan", "OTX AlienVault", "URLScan.io"]
+    src_map = {s.source: s for s in result.sources}
+    for sname in all_sources:
+        abbr = _abbr(sname)
+        if sname in src_map:
+            scls = _src_sq_cls(src_map[sname].verdict)
+        else:
+            scls = "unk"
+        src_squares += f'<div class="tc-sq {scls}" title="{sname}">{abbr}</div>'
+
+    row_html = f"""
+<div class="tc-row">
+  <div class="tc-ioc">{result.ioc}</div>
+  <div class="tc-ioc-type">{ioc_label}</div>
+  <div class="tc-score-wrap">
+    <div class="tc-score-bg">
+      <div class="tc-score-fill" style="width:{avg_score:.0f}%;background:{vcolor}"></div>
+    </div>
+    <span class="tc-score-val" style="color:{vcolor}">{avg_score:.0f}</span>
+  </div>
+  <div class="tc-srcs">{src_squares}</div>
+  <div class="tc-verdict {vcls}">{verdict.upper()}</div>
+</div>
+"""
+    st.markdown(row_html, unsafe_allow_html=True)
+
+    # Expandable detail panel
+    ts = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(result.checked_at))
+    with st.expander(
+        f"  {result.ioc}  ·  {result.malicious_count}/{result.source_count} flagged  ·  {ts}",
+        expanded=False,
+    ):
+        if not result.sources:
+            st.caption("No sources returned results.")
+            return
+
+        src_cards_html = "".join(_source_card_html(sr) for sr in result.sources)
+        st.markdown(
+            f'<div class="tc-detail"><div class="tc-detail-grid">'
+            f"{src_cards_html}"
+            f"</div></div>",
+            unsafe_allow_html=True,
+        )
+
+
+# ── Bulk results table ────────────────────────────────────────────────────────
+
+def render_results_table(results: list[OsintResult]) -> None:
+    """Render full table with header + rows."""
     if not results:
+        st.markdown(
+            '<div style="padding:2.5rem;text-align:center;'
+            'font-family:var(--font-mono);font-size:11px;color:var(--text-dim);">'
+            "no results yet</div>",
+            unsafe_allow_html=True,
+        )
         return
 
-    total      = len(results)
+    render_table_header()
+    for i, r in enumerate(results):
+        render_result_row(r, i)
+
+
+# ── Stat strip (delegate to theme) ───────────────────────────────────────────
+
+def render_stat_strip(results: list[OsintResult]) -> None:
+    from utils.theme import stat_strip_html
     malicious  = sum(1 for r in results if r.overall_verdict == "malicious")
     suspicious = sum(1 for r in results if r.overall_verdict == "suspicious")
     clean      = sum(1 for r in results if r.overall_verdict == "clean")
-    unknown    = sum(1 for r in results if r.overall_verdict in ("unknown", "error"))
-
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Total IOCs", total)
-    c2.metric("🔴 Malicious",  malicious)
-    c3.metric("🟡 Suspicious", suspicious)
-    c4.metric("🟢 Clean",      clean)
-    c5.metric("⚪ Unknown",    unknown)
-
-
-def render_api_status_sidebar(api_keys: dict[str, str]) -> None:
-    """Render coloured API status dots in the sidebar."""
-    source_labels = {
-        "virustotal": "VirusTotal",
-        "abuseipdb":  "AbuseIPDB",
-        "shodan":     "Shodan",
-        "otx":        "OTX AlienVault",
-        "urlscan":    "URLScan.io",
-    }
-    st.sidebar.markdown("### API Sources")
-    for key, label in source_labels.items():
-        active = bool(api_keys.get(key, "").strip())
-        dot_cls = "active" if active else "inactive"
-        status_txt = "connected" if active else "no key"
-        st.sidebar.markdown(
-            f'<div class="api-status">'
-            f'<div class="api-dot {dot_cls}"></div>'
-            f"<span>{label}</span>"
-            f'<span style="margin-left:auto;font-size:0.65rem;'
-            f"color:{'var(--tint)' if active else 'var(--text-dim)'}\">"
-            f"{status_txt}</span>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
+    st.markdown(
+        stat_strip_html(malicious, suspicious, clean, len(results)),
+        unsafe_allow_html=True,
+    )
