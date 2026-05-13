@@ -7,7 +7,7 @@ from __future__ import annotations
 import streamlit as st
 
 
-DEFAULT_TINT = "#FF6B6B"
+DEFAULT_TINT = "#C8A27A"
 
 VERDICT_COLORS = {
     "malicious":  "#FF6B6B",
@@ -48,7 +48,7 @@ def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def inject_css(tint: str = DEFAULT_TINT) -> "#C8A27A":
+def inject_css(tint: str = DEFAULT_TINT) -> None:
     """Inject global CSS — Option B terminal style."""
     r, g, b = _hex_to_rgb(tint)
 
@@ -66,24 +66,24 @@ def inject_css(tint: str = DEFAULT_TINT) -> "#C8A27A":
     --tint-mid:      rgba({r},{g},{b},0.16);
     --tint-border:   rgba({r},{g},{b},0.24);
 
-    --bg-base:       #F7F3EE;
-    --bg-surface:    #FFFDFC;
-    --bg-row-hover:  #F1EAE2;
+    --bg-base:       #14110F;
+    --bg-surface:    #1C1815;
+    --bg-row-hover:  #26211D;
 
     --border-dim:    rgba(80,60,40,0.06);
     --border-mid:    rgba(80,60,40,0.10);
 
-    --text-primary:  #3E342B;
-    --text-secondary:#7B6A58;
-    --text-dim:      #B7AA9B;
+    --text-primary:  #E8DDD0;
+    --text-secondary:#A99886;
+    --text-dim:      #5E5247;
 
     --font-mono:     'JetBrains Mono', monospace;
     --font-display:  'Syne', sans-serif;
 
-    --v-mal:         #C96B5C;
-    --v-sus:         #C9A44C;
-    --v-cln:         #6E9B78;
-    --v-unk:         #B8ADA1;
+    --v-mal:         #D97A6B;
+    --v-sus:         #D6B25E;
+    --v-cln:         #7FB089;
+    --v-unk:         #6B6055;
 }}
 
 /* ── Base ───────────────────────────────────────────── */
