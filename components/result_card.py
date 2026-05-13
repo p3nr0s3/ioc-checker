@@ -121,23 +121,29 @@ def render_result_row(result: OsintResult, idx: int) -> None:
     verdict  = result.overall_verdict
     vcls     = _verdict_cls(verdict)
     vcolor   = _score_color(verdict)
-    ioc_label = IOC_TYPE_LABELS.get(result.ioc_type, "?").split()[-1]  # short label
+    ioc_label = IOC_TYPE_LABELS.get(result.ioc_type, "?").split()[-1]
 
-    # Score = average of available source scores
     scores = [s.score for s in result.sources if s.score is not None]
     avg_score = sum(scores) / len(scores) if scores else 0.0
 
-    # Source squares HTML
+    # Source squares HTML (include GreyNoise if present)
     src_squares = ""
     all_sources = ["VirusTotal", "AbuseIPDB", "Shodan", "OTX AlienVault", "URLScan.io"]
     src_map = {s.source: s for s in result.sources}
     for sname in all_sources:
         abbr = _abbr(sname)
-        if sname in src_map:
-            scls = _src_sq_cls(src_map[sname].verdict)
-        else:
-            scls = "unk"
+        scls = _src_sq_cls(src_map[sname].verdict) if sname in src_map else "unk"
         src_squares += f'<div class="tc-sq {scls}" title="{sname}">{abbr}</div>'
+
+    # GreyNoise mini badge inline
+    gn = result.greynoise
+    gn_inline = ""
+    if gn and not gn.error:
+        gn_cls = gn.verdict_label.replace(" ", "_").lower()
+        gn_inline = (
+            f'<div class="tc-sq {gn_cls}" title="GreyNoise: {gn.noise_label}" '
+            f'style="font-size:7px;border:1px solid rgba(255,184,108,0.3);">GN</div>'
+        )
 
     row_html = f"""
 <div class="tc-row">
@@ -149,13 +155,12 @@ def render_result_row(result: OsintResult, idx: int) -> None:
     </div>
     <span class="tc-score-val" style="color:{vcolor}">{avg_score:.0f}</span>
   </div>
-  <div class="tc-srcs">{src_squares}</div>
+  <div class="tc-srcs">{src_squares}{gn_inline}</div>
   <div class="tc-verdict {vcls}">{verdict.upper()}</div>
 </div>
 """
     st.markdown(row_html, unsafe_allow_html=True)
 
-    # Expandable detail panel
     ts = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(result.checked_at))
     with st.expander(
         f"  {result.ioc}  ·  {result.malicious_count}/{result.source_count} flagged  ·  {ts}",
@@ -165,6 +170,55 @@ def render_result_row(result: OsintResult, idx: int) -> None:
             st.caption("No sources returned results.")
             return
 
+        # ── Threat context panel ──────────────────────────────────
+        ctx = result.threat_context
+        gn  = result.greynoise
+
+        enrichment_html = ""
+
+        # Threat tags
+        if ctx and ctx.tags:
+            tag_cls_map = {
+                "TOR Exit Node": "tor", "C2": "mal", "Phishing": "mal",
+                "Ransomware": "mal", "Botnet": "mal", "Malware Distribution": "mal",
+                "Credential Theft": "sus", "Exploit": "sus", "Brute-Force": "sus",
+                "SSH Brute-Force": "sus", "DDoS": "sus", "Web App Attack": "sus",
+                "SQLi": "sus", "Scanner": "info", "Spam": "info",
+                "VPN": "info", "Proxy / Anonymization": "info",
+                "Data Exfiltration": "mal", "Cryptomining": "sus",
+            }
+            tags_html = "".join(
+                f'<span class="tc-tag {tag_cls_map.get(t, "info")}">{t}</span>'
+                for t in ctx.tags
+            )
+            enrichment_html += f'<div class="tc-tags">{tags_html}</div>'
+
+        # MITRE ATT&CK badges
+        if ctx and ctx.mitre:
+            mitre_html = "".join(
+                f'<a class="tc-mitre" href="{t["url"]}" target="_blank" '
+                f'title="{t["tactic"]}">{t["id"]} · {t["name"]}</a>'
+                for t in ctx.mitre
+            )
+            enrichment_html += f'<div class="tc-mitre-section">{mitre_html}</div>'
+
+        # GreyNoise enrichment
+        if gn and not gn.error:
+            gn_name = f" · {gn.name}" if gn.name else ""
+            gn_link = f' <a href="{gn.link}" target="_blank" style="color:var(--tint);font-size:9px;opacity:0.7">↗</a>' if gn.link else ""
+            enrichment_html += (
+                f'<div class="tc-gn {gn.verdict_label}">'
+                f'⬡ GreyNoise · {gn.noise_label}{gn_name}{gn_link}</div>'
+            )
+
+        if enrichment_html:
+            st.markdown(
+                f'<div style="padding:8px 14px 4px;border-bottom:1px solid var(--border-dim);">'
+                f'{enrichment_html}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # ── Per-source cards ─────────────────────────────────────
         src_cards_html = "".join(_source_card_html(sr) for sr in result.sources)
         st.markdown(
             f'<div class="tc-detail"><div class="tc-detail-grid">'

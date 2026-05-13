@@ -96,3 +96,52 @@ IOC_TYPE_LABELS: dict[IOCType, str] = {
     IOCType.EMAIL:   "✉️ Email",
     IOCType.UNKNOWN: "❓ Unknown",
 }
+
+
+def parse_bulk_csv(file_bytes: bytes) -> list[str]:
+    """Parse uploaded CSV/TXT file into a deduplicated list of IOC strings.
+
+    Accepts:
+      - Plain text files: one IOC per line
+      - CSV files: scans every cell of every row for valid IOC patterns
+        (handles exports from SentinelOne, Wazuh, SIEM tools, etc.)
+
+    Args:
+        file_bytes: Raw bytes from st.file_uploader read()
+
+    Returns:
+        Deduplicated list of non-empty candidate IOC strings.
+    """
+    import io as _io
+    import csv as _csv
+
+    text = file_bytes.decode("utf-8", errors="replace")
+    candidates: list[str] = []
+
+    # Try CSV parsing first
+    try:
+        reader = _csv.reader(_io.StringIO(text))
+        for row in reader:
+            for cell in row:
+                cleaned = cell.strip().strip('"').strip("'")
+                if cleaned:
+                    candidates.append(cleaned)
+    except Exception:
+        # Fallback: plain line-by-line
+        for line in text.splitlines():
+            for part in line.split(","):
+                cleaned = part.strip()
+                if cleaned:
+                    candidates.append(cleaned)
+
+    # Deduplicate and filter to recognised IOC types only
+    seen: set[str] = set()
+    unique: list[str] = []
+    for item in candidates:
+        if item in seen:
+            continue
+        seen.add(item)
+        if detect_ioc_type(item) != IOCType.UNKNOWN:
+            unique.append(item)
+
+    return unique

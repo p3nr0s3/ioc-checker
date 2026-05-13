@@ -12,8 +12,8 @@ import pandas as pd
 import streamlit as st
 
 from components.result_card import render_results_table, render_stat_strip, render_result_row, render_table_header
-from utils.export import results_to_csv, results_to_json
-from utils.ioc_detector import IOC_TYPE_LABELS, IOCType, detect_ioc_type, parse_bulk_input
+from utils.export import results_to_csv, results_to_json, results_to_sigma, results_to_yara
+from utils.ioc_detector import IOC_TYPE_LABELS, IOCType, detect_ioc_type, parse_bulk_input, parse_bulk_csv
 from utils.osint_api import OsintResult, check_ioc
 from utils.theme import get_tint, inject_css, topbar_html, stat_strip_html
 
@@ -41,9 +41,10 @@ def load_api_keys() -> dict[str, str]:
             "shodan":     s.get("shodan",      ""),
             "otx":        s.get("otx",         ""),
             "urlscan":    s.get("urlscan",      ""),
+            "greynoise":  s.get("greynoise",    ""),
         }
     except Exception:
-        return {k: "" for k in ("virustotal", "abuseipdb", "shodan", "otx", "urlscan")}
+        return {k: "" for k in ("virustotal", "abuseipdb", "shodan", "otx", "urlscan", "greynoise")}
 
 
 def get_results() -> list[OsintResult]:
@@ -153,6 +154,27 @@ with tab_scan:
         )
         render_results_table(results[:20])  # show latest 20 on scan tab
 
+        # ── Inline export buttons ──────────────────────────────
+        col_dl1, col_dl2, col_dl3, _ = st.columns([1.5, 1.5, 1.5, 6.5])
+        with col_dl1:
+            st.download_button(
+                "⬇ CSV", data=results_to_csv(results[:20]),
+                file_name="ioc_scan.csv", mime="text/csv",
+                use_container_width=True,
+            )
+        with col_dl2:
+            st.download_button(
+                "⬇ JSON", data=results_to_json(results[:20]),
+                file_name="ioc_scan.json", mime="application/json",
+                use_container_width=True,
+            )
+        with col_dl3:
+            st.download_button(
+                "⬇ Sigma", data=results_to_sigma(results[:20]),
+                file_name="ioc_rules.yml", mime="text/yaml",
+                use_container_width=True,
+            )
+
         if len(results) > 20:
             st.markdown(
                 f'<div class="tc-hint">showing 20 of {len(results)} — '
@@ -173,25 +195,50 @@ with tab_scan:
 # ══════════════════════════════════════════════════════════════════════════════
 with tab_bulk:
     st.markdown('<div class="tc-section">Bulk indicator check</div>', unsafe_allow_html=True)
-    st.caption("One IOC per line or comma-separated. Mixed types supported.")
 
-    bulk_raw = st.text_area(
-        "IOC list",
-        height=180,
-        placeholder=(
-            "185.220.101.47\n"
-            "cdn-assets-free[.]ru\n"
-            "https://phish.example.com/login\n"
-            "d41d8cd98f00b204e9800998ecf8427e\n"
-            "attacker@malicious.biz"
-        ),
+    # ── Input mode toggle ──────────────────────────────────────────
+    input_mode = st.radio(
+        "Input method",
+        ["✏ Paste text", "📂 Upload CSV / TXT"],
+        horizontal=True,
         label_visibility="collapsed",
-        key="bulk_input",
     )
 
     parsed: list[str] = []
-    if bulk_raw.strip():
-        parsed = parse_bulk_input(bulk_raw)
+
+    if input_mode == "✏ Paste text":
+        st.caption("One IOC per line or comma-separated. Mixed types supported.")
+        bulk_raw = st.text_area(
+            "IOC list",
+            height=180,
+            placeholder=(
+                "185.220.101.47\n"
+                "cdn-assets-free[.]ru\n"
+                "https://phish.example.com/login\n"
+                "d41d8cd98f00b204e9800998ecf8427e\n"
+                "attacker@malicious.biz"
+            ),
+            label_visibility="collapsed",
+            key="bulk_input",
+        )
+        if bulk_raw.strip():
+            parsed = parse_bulk_input(bulk_raw)
+
+    else:  # Upload mode
+        st.caption("Upload a .csv or .txt file — all cells scanned for valid IOCs (IP, domain, URL, hash, email).")
+        uploaded_file = st.file_uploader(
+            "Upload IOC file",
+            type=["csv", "txt"],
+            label_visibility="collapsed",
+            key="bulk_upload",
+        )
+        if uploaded_file is not None:
+            file_bytes = uploaded_file.read()
+            parsed = parse_bulk_csv(file_bytes)
+            if not parsed:
+                st.warning("No recognisable IOCs found in the uploaded file.")
+
+    if parsed:
         type_summary = ", ".join(
             f"`{ioc}` → {IOC_TYPE_LABELS.get(detect_ioc_type(ioc), '?').split()[-1]}"
             for ioc in parsed[:4]
@@ -199,7 +246,7 @@ with tab_bulk:
         suffix = f" … +{len(parsed)-4} more" if len(parsed) > 4 else ""
         st.caption(f"**{len(parsed)}** unique IOCs detected: {type_summary}{suffix}")
 
-    col_run, col_clear = st.columns([2, 8])
+    col_run, _ = st.columns([2, 8])
     with col_run:
         run_bulk = st.button(
             "Run bulk check",
@@ -245,6 +292,34 @@ with tab_bulk:
             if bulk_new:
                 st.success(f"Done — {len(bulk_new)} IOC(s) processed.")
                 render_stat_strip(bulk_new)
+
+                # ── Export buttons ─────────────────────────────────
+                ec1, ec2, ec3, ec4, _ = st.columns([1.5, 1.5, 1.5, 1.5, 5])
+                with ec1:
+                    st.download_button(
+                        "⬇ CSV", data=results_to_csv(bulk_new),
+                        file_name="bulk_results.csv", mime="text/csv",
+                        use_container_width=True,
+                    )
+                with ec2:
+                    st.download_button(
+                        "⬇ JSON", data=results_to_json(bulk_new),
+                        file_name="bulk_results.json", mime="application/json",
+                        use_container_width=True,
+                    )
+                with ec3:
+                    st.download_button(
+                        "⬇ Sigma", data=results_to_sigma(bulk_new),
+                        file_name="bulk_rules.yml", mime="text/yaml",
+                        use_container_width=True,
+                    )
+                with ec4:
+                    st.download_button(
+                        "⬇ YARA", data=results_to_yara(bulk_new),
+                        file_name="bulk_hashes.yar", mime="text/plain",
+                        use_container_width=True,
+                    )
+
                 st.markdown('<div class="tc-section" style="margin-top:16px;">Results</div>', unsafe_allow_html=True)
                 render_results_table(bulk_new)
 
@@ -264,7 +339,7 @@ with tab_history:
         )
     else:
         # ── Controls row ──────────────────────────────────────────
-        c1, c2, c3, c4, c5 = st.columns([2, 2, 1.5, 1.5, 2])
+        c1, c2, c3 = st.columns([2, 2, 1.5])
         with c1:
             filter_v = st.selectbox(
                 "Verdict",
@@ -278,25 +353,36 @@ with tab_history:
                 label_visibility="visible",
             )
         with c3:
-            st.download_button(
-                "⬇ JSON",
-                data=results_to_json(results),
-                file_name="ioc_results.json",
-                mime="application/json",
-                use_container_width=True,
-            )
-        with c4:
-            st.download_button(
-                "⬇ CSV",
-                data=results_to_csv(results),
-                file_name="ioc_results.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        with c5:
             if st.button("🗑 Clear session", use_container_width=True):
                 st.session_state["results"] = []
                 st.rerun()
+
+        # ── Export row ────────────────────────────────────────────
+        e1, e2, e3, e4 = st.columns([1.5, 1.5, 1.5, 1.5])
+        with e1:
+            st.download_button(
+                "⬇ CSV", data=results_to_csv(results),
+                file_name="ioc_results.csv", mime="text/csv",
+                use_container_width=True,
+            )
+        with e2:
+            st.download_button(
+                "⬇ JSON", data=results_to_json(results),
+                file_name="ioc_results.json", mime="application/json",
+                use_container_width=True,
+            )
+        with e3:
+            st.download_button(
+                "⬇ Sigma", data=results_to_sigma(results),
+                file_name="ioc_rules.yml", mime="text/yaml",
+                use_container_width=True,
+            )
+        with e4:
+            st.download_button(
+                "⬇ YARA", data=results_to_yara(results),
+                file_name="ioc_hashes.yar", mime="text/plain",
+                use_container_width=True,
+            )
 
         # ── Filter + sort ─────────────────────────────────────────
         filtered = (
@@ -339,11 +425,12 @@ with tab_settings:
     st.markdown('<div class="tc-section" style="margin-top:24px;">API sources</div>', unsafe_allow_html=True)
 
     source_info = {
-        "virustotal": ("VirusTotal",     "virustotal.com",       "IP · Domain · URL · Hash"),
-        "abuseipdb":  ("AbuseIPDB",      "abuseipdb.com",        "IP only"),
-        "shodan":     ("Shodan",         "account.shodan.io",    "IP only"),
-        "otx":        ("OTX AlienVault", "otx.alienvault.com",   "IP · Domain · URL · Hash"),
-        "urlscan":    ("URLScan.io",     "urlscan.io",           "IP · Domain · URL"),
+        "virustotal": ("VirusTotal",     "virustotal.com",          "IP · Domain · URL · Hash"),
+        "abuseipdb":  ("AbuseIPDB",      "abuseipdb.com",           "IP only"),
+        "shodan":     ("Shodan",         "account.shodan.io",       "IP only"),
+        "otx":        ("OTX AlienVault", "otx.alienvault.com",      "IP · Domain · URL · Hash"),
+        "urlscan":    ("URLScan.io",     "urlscan.io",              "IP · Domain · URL"),
+        "greynoise":  ("GreyNoise",      "www.greynoise.io",        "IP only · Noise reduction"),
     }
 
     rows = []
@@ -381,6 +468,7 @@ abuseipdb  = "YOUR_ABUSEIPDB_KEY"
 shodan     = "YOUR_SHODAN_KEY"
 otx        = "YOUR_OTX_KEY"
 urlscan    = "YOUR_URLSCAN_KEY"
+greynoise  = "YOUR_GREYNOISE_KEY"   # optional — https://www.greynoise.io/
 
 [theme]
 tint = "#FF6B6B"   # any hex colour""",
@@ -388,5 +476,6 @@ tint = "#FF6B6B"   # any hex colour""",
     )
     st.caption(
         "Paste this into **Streamlit Cloud → App → Settings → Secrets**. "
-        "Omit any key you don't have — that source will be skipped silently."
+        "Omit any key you don't have — that source will be skipped silently. "
+        "GreyNoise free community key available at greynoise.io."
     )

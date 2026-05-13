@@ -31,6 +31,7 @@ SOURCE_ABBR = {
     "Shodan":         "SH",
     "OTX AlienVault": "OT",
     "URLScan.io":     "US",
+    "GreyNoise":      "GN",
 }
 
 
@@ -96,7 +97,17 @@ html, body,
 .stMainBlockContainer {{
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
-    max-width: 1200px !important;
+    padding-top: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+}}
+
+/* Force Streamlit's outermost wrapper to be full width */
+.main .block-container {{
+    max-width: 100% !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    padding-top: 0 !important;
 }}
 
 /* ── Typography ─────────────────────────────────────── */
@@ -558,6 +569,103 @@ hr {{
 [data-testid="stDownloadButton"] > button:hover {{
     border-color: var(--tint-border) !important;
     color: var(--tint) !important;
+}}
+
+/* ── Threat context tags ─────────────────────────────── */
+.tc-tags {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}}
+.tc-tag {{
+    font-family: var(--font-mono);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid;
+    white-space: nowrap;
+}}
+.tc-tag.mal  {{ color: #FF6B6B; border-color: rgba(255,107,107,0.3); background: rgba(255,107,107,0.08); }}
+.tc-tag.sus  {{ color: #FFD93D; border-color: rgba(255,217,61,0.3);  background: rgba(255,217,61,0.08);  }}
+.tc-tag.info {{ color: var(--text-secondary); border-color: var(--border-mid); background: var(--bg-surface); }}
+.tc-tag.tor  {{ color: #BD93F9; border-color: rgba(189,147,249,0.3); background: rgba(189,147,249,0.08); }}
+.tc-tag.noise {{ color: #FFB86C; border-color: rgba(255,184,108,0.3); background: rgba(255,184,108,0.08); }}
+.tc-tag.new-domain {{ color: #FF5555; border-color: rgba(255,85,85,0.4); background: rgba(255,85,85,0.10); animation: pulse-border 1.5s ease-in-out infinite; }}
+@keyframes pulse-border {{
+  0%, 100% {{ border-color: rgba(255,85,85,0.4); }}
+  50%       {{ border-color: rgba(255,85,85,0.8); }}
+}}
+
+/* ── MITRE ATT&CK badge ─────────────────────────────── */
+.tc-mitre {{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    color: #8BE9FD;
+    border: 1px solid rgba(139,233,253,0.25);
+    background: rgba(139,233,253,0.06);
+    border-radius: 3px;
+    padding: 2px 6px;
+    margin: 2px;
+    white-space: nowrap;
+    cursor: help;
+}}
+.tc-mitre-section {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-top: 5px;
+}}
+
+/* ── GreyNoise badge ─────────────────────────────────── */
+.tc-gn {{
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid;
+    margin-top: 4px;
+}}
+.tc-gn.noise   {{ color: #FFB86C; border-color: rgba(255,184,108,0.3); background: rgba(255,184,108,0.06); }}
+.tc-gn.malicious {{ color: #FF6B6B; border-color: rgba(255,107,107,0.3); background: rgba(255,107,107,0.08); }}
+.tc-gn.riot    {{ color: #50FA7B; border-color: rgba(80,250,123,0.3);  background: rgba(80,250,123,0.06); }}
+.tc-gn.not_seen {{ color: var(--text-dim); border-color: var(--border-dim); background: transparent; }}
+.tc-gn.unknown {{ color: var(--text-secondary); border-color: var(--border-dim); background: transparent; }}
+
+/* ── WHOIS enrichment row ───────────────────────────── */
+.tc-whois {{
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}}
+.tc-whois-item {{ display: flex; gap: 4px; align-items: center; }}
+.tc-whois-k {{ color: var(--text-dim); }}
+.tc-whois-v {{ color: var(--text-primary); }}
+.tc-whois-new {{ color: #FF5555 !important; font-weight: 600; }}
+
+/* ── File upload zone ────────────────────────────────── */
+[data-testid="stFileUploader"] {{
+    background: var(--bg-surface) !important;
+    border: 1px dashed var(--border-mid) !important;
+    border-radius: 6px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+}}
+[data-testid="stFileUploader"] section {{
+    padding: 1rem !important;
 }}
 
 /* ── Color picker ───────────────────────────────────── */
