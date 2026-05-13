@@ -371,12 +371,12 @@ with tab_history:
                 file_name="ioc_results.json", mime="application/json",
                 use_container_width=True,
             )
-        with e3:
-            st.download_button(
-                "⬇ Sigma", data=results_to_sigma(results),
-                file_name="ioc_rules.yml", mime="text/yaml",
-                use_container_width=True,
-            )
+        # with e3:
+            # st.download_button(
+              #  "⬇ Sigma", data=results_to_sigma(results),
+              #  file_name="ioc_rules.yml", mime="text/yaml",
+              #  use_container_width=True,
+            #)
         with e4:
             st.download_button(
                 "⬇ YARA", data=results_to_yara(results),
