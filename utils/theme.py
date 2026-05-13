@@ -48,7 +48,7 @@ def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def inject_css(tint: str = DEFAULT_TINT) -> None:
+def inject_css(tint: str = DEFAULT_TINT) -> "#C8A27A":
     """Inject global CSS — Option B terminal style."""
     r, g, b = _hex_to_rgb(tint)
 
@@ -61,23 +61,29 @@ def inject_css(tint: str = DEFAULT_TINT) -> None:
     --tint-r:        {r};
     --tint-g:        {g};
     --tint-b:        {b};
+
     --tint-dim:      rgba({r},{g},{b},0.08);
-    --tint-mid:      rgba({r},{g},{b},0.18);
-    --tint-border:   rgba({r},{g},{b},0.28);
-    --bg-base:       #06070F;
-    --bg-surface:    #0B0D1A;
-    --bg-row-hover:  #111428;
-    --border-dim:    rgba(255,255,255,0.05);
-    --border-mid:    rgba(255,255,255,0.09);
-    --text-primary:  #C8D0E8;
-    --text-secondary:#4A5578;
-    --text-dim:      #262B40;
+    --tint-mid:      rgba({r},{g},{b},0.16);
+    --tint-border:   rgba({r},{g},{b},0.24);
+
+    --bg-base:       #F7F3EE;
+    --bg-surface:    #FFFDFC;
+    --bg-row-hover:  #F1EAE2;
+
+    --border-dim:    rgba(80,60,40,0.06);
+    --border-mid:    rgba(80,60,40,0.10);
+
+    --text-primary:  #3E342B;
+    --text-secondary:#7B6A58;
+    --text-dim:      #B7AA9B;
+
     --font-mono:     'JetBrains Mono', monospace;
     --font-display:  'Syne', sans-serif;
-    --v-mal:         #FF6B6B;
-    --v-sus:         #FFD93D;
-    --v-cln:         #50FA7B;
-    --v-unk:         #3A4060;
+
+    --v-mal:         #C96B5C;
+    --v-sus:         #C9A44C;
+    --v-cln:         #6E9B78;
+    --v-unk:         #B8ADA1;
 }}
 
 /* ── Base ───────────────────────────────────────────── */
