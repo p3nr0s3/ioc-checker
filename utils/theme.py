@@ -1,28 +1,20 @@
 """
-Theme helpers — Option B terminal aesthetic.
-JetBrains Mono + Syne, near-black base, configurable tint accent.
+Theme helpers — adaptive light/dark with configurable tint.
+Mode is read from secrets (theme.mode) or auto-detected via JS.
 """
 from __future__ import annotations
 
 import streamlit as st
 
-
 DEFAULT_TINT = "#FF6B6B"
+DEFAULT_MODE = "dark"   # "dark" | "light" | "auto"
 
 VERDICT_COLORS = {
     "malicious":  "#FF6B6B",
     "suspicious": "#FFD93D",
     "clean":      "#50FA7B",
-    "unknown":    "#3A4060",
-    "error":      "#3A4060",
-}
-
-VERDICT_ICONS = {
-    "malicious":  "●",
-    "suspicious": "●",
-    "clean":      "●",
-    "unknown":    "○",
-    "error":      "○",
+    "unknown":    "#6B7A99",
+    "error":      "#6B7A99",
 }
 
 SOURCE_ABBR = {
@@ -35,51 +27,91 @@ SOURCE_ABBR = {
 
 
 def get_tint() -> str:
-    """Read tint from secrets or fall back to default."""
     try:
         return st.secrets.get("theme", {}).get("tint", DEFAULT_TINT)
     except Exception:
         return DEFAULT_TINT
 
 
-def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
-    h = hex_color.lstrip("#")
+def get_mode() -> str:
+    try:
+        return st.secrets.get("theme", {}).get("mode", DEFAULT_MODE).lower()
+    except Exception:
+        return DEFAULT_MODE
+
+
+def _hex_to_rgb(h: str) -> tuple[int, int, int]:
+    h = h.lstrip("#")
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 
-def inject_css(tint: str = DEFAULT_TINT) -> None:
-    """Inject global CSS — Option B terminal style."""
+def inject_css(tint: str = DEFAULT_TINT, mode: str = DEFAULT_MODE) -> None:
     r, g, b = _hex_to_rgb(tint)
+
+    # ── Palette tokens per mode ───────────────────────────────────
+    if mode == "light":
+        bg_base      = "#F4F5FA"
+        bg_surface   = "#FFFFFF"
+        bg_hover     = "#ECEEF6"
+        border_dim   = "rgba(0,0,0,0.07)"
+        border_mid   = "rgba(0,0,0,0.12)"
+        text_primary = "#1A1D2E"
+        text_secondary = "#5A6280"
+        text_dim     = "#A0A8C0"
+        topbar_bg    = "#FFFFFF"
+        topbar_border = "rgba(0,0,0,0.08)"
+        sq_unk_bg    = "#ECEEF6"
+        sq_unk_fg    = "#A0A8C0"
+        stat_bg      = "#FFFFFF"
+    else:  # dark (default)
+        bg_base      = "#06070F"
+        bg_surface   = "#0B0D1A"
+        bg_hover     = "#111428"
+        border_dim   = "rgba(255,255,255,0.05)"
+        border_mid   = "rgba(255,255,255,0.09)"
+        text_primary = "#C8D0E8"
+        text_secondary = "#4A5578"
+        text_dim     = "#262B40"
+        topbar_bg    = "#06070F"
+        topbar_border = "rgba(255,255,255,0.05)"
+        sq_unk_bg    = "#0B0D1A"
+        sq_unk_fg    = "#262B40"
+        stat_bg      = "#0B0D1A"
 
     css = f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@500;700&display=swap');
 
 :root {{
-    --tint:          {tint};
-    --tint-r:        {r};
-    --tint-g:        {g};
-    --tint-b:        {b};
-    --tint-dim:      rgba({r},{g},{b},0.08);
-    --tint-mid:      rgba({r},{g},{b},0.18);
-    --tint-border:   rgba({r},{g},{b},0.28);
-    --bg-base:       #06070F;
-    --bg-surface:    #0B0D1A;
-    --bg-row-hover:  #111428;
-    --border-dim:    rgba(255,255,255,0.05);
-    --border-mid:    rgba(255,255,255,0.09);
-    --text-primary:  #C8D0E8;
-    --text-secondary:#4A5578;
-    --text-dim:      #262B40;
-    --font-mono:     'JetBrains Mono', monospace;
-    --font-display:  'Syne', sans-serif;
-    --v-mal:         #FF6B6B;
-    --v-sus:         #FFD93D;
-    --v-cln:         #50FA7B;
-    --v-unk:         #3A4060;
+    --tint:           {tint};
+    --tint-r:         {r};
+    --tint-g:         {g};
+    --tint-b:         {b};
+    --tint-dim:       rgba({r},{g},{b},0.09);
+    --tint-mid:       rgba({r},{g},{b},0.20);
+    --tint-border:    rgba({r},{g},{b},0.30);
+    --bg-base:        {bg_base};
+    --bg-surface:     {bg_surface};
+    --bg-hover:       {bg_hover};
+    --border-dim:     {border_dim};
+    --border-mid:     {border_mid};
+    --text-primary:   {text_primary};
+    --text-secondary: {text_secondary};
+    --text-dim:       {text_dim};
+    --topbar-bg:      {topbar_bg};
+    --topbar-border:  {topbar_border};
+    --sq-unk-bg:      {sq_unk_bg};
+    --sq-unk-fg:      {sq_unk_fg};
+    --stat-bg:        {stat_bg};
+    --font-mono:      'JetBrains Mono', monospace;
+    --font-display:   'Syne', sans-serif;
+    --v-mal:          #FF6B6B;
+    --v-sus:          #FFD93D;
+    --v-cln:          #50FA7B;
+    --v-unk:          #6B7A99;
 }}
 
-/* ── Base ───────────────────────────────────────────── */
+/* ── Base ─────────────────────────────────────────── */
 html, body,
 [data-testid="stAppViewContainer"],
 [data-testid="stApp"] {{
@@ -87,8 +119,6 @@ html, body,
     font-family: var(--font-mono) !important;
     color: var(--text-primary) !important;
 }}
-
-/* ── Hide sidebar ───────────────────────────────────── */
 [data-testid="stSidebar"],
 [data-testid="collapsedControl"] {{
     display: none !important;
@@ -96,22 +126,15 @@ html, body,
 .stMainBlockContainer {{
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
-    max-width: 1200px !important;
+    max-width: 1240px !important;
 }}
 
-/* ── Typography ─────────────────────────────────────── */
-h1, h2, h3 {{
-    font-family: var(--font-display) !important;
-    color: var(--text-primary) !important;
-    letter-spacing: 0.04em;
-}}
-
-/* ── Topbar ─────────────────────────────────────────── */
+/* ── Topbar ───────────────────────────────────────── */
 .tc-topbar {{
     display: flex;
     align-items: stretch;
-    background: var(--bg-base);
-    border-bottom: 1px solid var(--border-dim);
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--topbar-border);
     height: 48px;
     margin-bottom: 24px;
     margin-left: -1.5rem;
@@ -131,8 +154,7 @@ h1, h2, h3 {{
     flex-shrink: 0;
 }}
 .tc-logo-sq {{
-    width: 15px;
-    height: 15px;
+    width: 15px; height: 15px;
     background: var(--tint);
     border-radius: 3px;
     transform: rotate(45deg);
@@ -150,6 +172,7 @@ h1, h2, h3 {{
     border-bottom: 1px solid transparent;
     letter-spacing: 0.08em;
     white-space: nowrap;
+    transition: color 0.15s;
 }}
 .tc-tab.active {{
     color: var(--tint);
@@ -163,24 +186,11 @@ h1, h2, h3 {{
     gap: 14px;
 }}
 .tc-dots {{ display: flex; gap: 5px; align-items: center; }}
-.tc-dot {{
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-}}
+.tc-dot {{ width: 7px; height: 7px; border-radius: 50%; }}
 .tc-dot.on  {{ background: #50FA7B; }}
 .tc-dot.off {{ background: var(--text-dim); }}
-.tc-tint-swatch {{
-    width: 18px;
-    height: 18px;
-    border-radius: 3px;
-    background: var(--tint);
-    opacity: 0.75;
-    cursor: pointer;
-    border: 1px solid var(--tint-border);
-}}
 
-/* ── Stat strip ─────────────────────────────────────── */
+/* ── Stat strip ───────────────────────────────────── */
 .tc-stats {{
     display: flex;
     gap: 1px;
@@ -191,7 +201,7 @@ h1, h2, h3 {{
 }}
 .tc-stat {{
     flex: 1;
-    background: var(--bg-surface);
+    background: var(--stat-bg);
     padding: 10px 16px;
     border-top: 2px solid transparent;
 }}
@@ -218,7 +228,7 @@ h1, h2, h3 {{
     font-family: var(--font-mono);
 }}
 
-/* ── Shell prompt ───────────────────────────────────── */
+/* ── Shell prompt ─────────────────────────────────── */
 .tc-shell-wrap {{
     display: flex;
     align-items: stretch;
@@ -240,8 +250,6 @@ h1, h2, h3 {{
     align-items: center;
     flex-shrink: 0;
 }}
-
-/* Input inside shell — override Streamlit */
 .tc-shell-wrap [data-testid="stTextInput"],
 .tc-shell-wrap [data-testid="stTextInput"] > div {{
     flex: 1 !important;
@@ -265,12 +273,16 @@ h1, h2, h3 {{
     color: var(--text-dim) !important;
 }}
 
-/* ── Table ──────────────────────────────────────────── */
+/* ── Results table ────────────────────────────────── */
 .tc-thead {{
     display: grid;
     grid-template-columns: 2.2fr 72px 130px 110px 92px;
     padding: 7px 14px;
     border-bottom: 1px solid var(--border-dim);
+    background: var(--bg-surface);
+    border-radius: 6px 6px 0 0;
+    border: 1px solid var(--border-dim);
+    border-bottom: none;
 }}
 .tc-th {{
     font-size: 9px;
@@ -280,6 +292,11 @@ h1, h2, h3 {{
     font-family: var(--font-mono);
 }}
 .tc-th.right {{ text-align: right; }}
+.tc-table-body {{
+    border: 1px solid var(--border-dim);
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+}}
 .tc-row {{
     display: grid;
     grid-template-columns: 2.2fr 72px 130px 110px 92px;
@@ -290,7 +307,8 @@ h1, h2, h3 {{
     transition: background 0.1s;
     cursor: pointer;
 }}
-.tc-row:hover {{ background: var(--bg-row-hover); }}
+.tc-row:last-child {{ border-bottom: none; }}
+.tc-row:hover {{ background: var(--bg-hover); }}
 .tc-ioc {{
     font-size: 12px;
     color: var(--text-primary);
@@ -299,10 +317,7 @@ h1, h2, h3 {{
     white-space: nowrap;
     padding-right: 10px;
 }}
-.tc-ioc-type {{
-    font-size: 10px;
-    color: var(--text-secondary);
-}}
+.tc-ioc-type {{ font-size: 10px; color: var(--text-secondary); }}
 .tc-score-wrap {{
     display: flex;
     align-items: center;
@@ -312,19 +327,15 @@ h1, h2, h3 {{
 .tc-score-bg {{
     flex: 1;
     height: 3px;
-    background: var(--bg-base);
+    background: var(--border-mid);
     border-radius: 2px;
     overflow: hidden;
 }}
-.tc-score-fill {{
-    height: 100%;
-    border-radius: 2px;
-}}
+.tc-score-fill {{ height: 100%; border-radius: 2px; }}
 .tc-score-val {{ font-size: 10px; min-width: 22px; text-align: right; }}
 .tc-srcs {{ display: flex; gap: 3px; }}
 .tc-sq {{
-    width: 16px;
-    height: 16px;
+    width: 16px; height: 16px;
     border-radius: 2px;
     font-size: 8px;
     font-weight: 600;
@@ -332,18 +343,18 @@ h1, h2, h3 {{
     align-items: center;
     justify-content: center;
     font-family: var(--font-mono);
-    letter-spacing: 0;
 }}
 .tc-sq.mal {{ background: rgba(255,107,107,0.18); color: #FF6B6B; }}
-.tc-sq.cln {{ background: rgba(80,250,123,0.10);  color: #50FA7B; }}
-.tc-sq.unk {{ background: var(--bg-surface); color: var(--text-dim); }}
+.tc-sq.sus {{ background: rgba(255,217,61,0.15);  color: #FFD93D; }}
+.tc-sq.cln {{ background: rgba(80,250,123,0.12);  color: #50FA7B; }}
+.tc-sq.unk {{ background: var(--sq-unk-bg); color: var(--sq-unk-fg); }}
 .tc-verdict {{ font-size: 10px; text-align: right; font-weight: 500; letter-spacing: 0.06em; }}
 .tc-verdict.mal {{ color: var(--v-mal); }}
 .tc-verdict.sus {{ color: var(--v-sus); }}
 .tc-verdict.cln {{ color: var(--v-cln); }}
 .tc-verdict.unk {{ color: var(--text-secondary); }}
 
-/* ── Source detail panel ────────────────────────────── */
+/* ── Detail panel ─────────────────────────────────── */
 .tc-detail {{
     background: var(--bg-surface);
     border: 1px solid var(--border-dim);
@@ -353,7 +364,7 @@ h1, h2, h3 {{
 }}
 .tc-detail-grid {{
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 8px;
 }}
 .tc-src-card {{
@@ -373,8 +384,7 @@ h1, h2, h3 {{
     gap: 6px;
 }}
 .tc-src-vdot {{
-    width: 6px;
-    height: 6px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
 }}
@@ -384,15 +394,17 @@ h1, h2, h3 {{
     gap: 8px;
     padding: 2px 0;
     font-size: 10px;
+    border-bottom: 1px solid var(--border-dim);
 }}
-.tc-kv-k {{ color: var(--text-secondary); white-space: nowrap; }}
+.tc-kv:last-of-type {{ border-bottom: none; }}
+.tc-kv-k {{ color: var(--text-secondary); white-space: nowrap; min-width: 80px; }}
 .tc-kv-v {{
     color: var(--text-primary);
     text-align: right;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 55%;
+    max-width: 58%;
 }}
 .tc-link {{
     display: inline-block;
@@ -404,7 +416,47 @@ h1, h2, h3 {{
 }}
 .tc-link:hover {{ opacity: 1; }}
 
-/* ── Bulk hint ──────────────────────────────────────── */
+/* ── Source selector ──────────────────────────────── */
+.tc-src-selector {{
+    display: flex;
+    gap: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}}
+.tc-src-option {{
+    flex: 1;
+    padding: 8px 14px;
+    border-right: 1px solid var(--border-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}}
+.tc-src-option:last-child {{ border-right: none; }}
+.tc-src-name {{
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: 2px;
+}}
+.tc-src-types {{
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+}}
+.tc-src-active .tc-src-name  {{ color: var(--tint); }}
+
+/* ── Misc UI ──────────────────────────────────────── */
+.tc-section {{
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-family: var(--font-mono);
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border-dim);
+}}
 .tc-hint {{
     margin-top: 8px;
     padding: 10px 14px;
@@ -416,20 +468,17 @@ h1, h2, h3 {{
     font-family: var(--font-mono);
     text-align: center;
 }}
-
-/* ── Section label ──────────────────────────────────── */
-.tc-section {{
+.tc-mode-badge {{
+    font-family: var(--font-mono);
     font-size: 9px;
     color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-family: var(--font-mono);
-    margin-bottom: 8px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--border-dim);
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
 }}
 
-/* ── Buttons ────────────────────────────────────────── */
+/* ── Buttons ──────────────────────────────────────── */
 .stButton > button {{
     background: transparent !important;
     color: var(--tint) !important;
@@ -448,7 +497,7 @@ h1, h2, h3 {{
 }}
 .stButton > button[kind="primary"] {{
     background: var(--tint) !important;
-    color: #06070F !important;
+    color: {"#06070F" if mode == "dark" else "#FFFFFF"} !important;
     border-color: var(--tint) !important;
     font-weight: 700 !important;
 }}
@@ -456,7 +505,24 @@ h1, h2, h3 {{
     opacity: 0.85 !important;
 }}
 
-/* ── Selectbox ──────────────────────────────────────── */
+/* ── Inputs ───────────────────────────────────────── */
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea {{
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-mid) !important;
+    border-radius: 6px !important;
+    color: var(--text-primary) !important;
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+}}
+[data-testid="stTextInput"] input:focus,
+[data-testid="stTextArea"] textarea:focus {{
+    border-color: var(--tint-border) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}}
+
+/* ── Selectbox ────────────────────────────────────── */
 [data-testid="stSelectbox"] > div > div {{
     background: var(--bg-surface) !important;
     border: 1px solid var(--border-mid) !important;
@@ -466,23 +532,14 @@ h1, h2, h3 {{
     font-size: 11px !important;
 }}
 
-/* ── Textarea ───────────────────────────────────────── */
-[data-testid="stTextArea"] textarea {{
-    background: var(--bg-surface) !important;
-    border: 1px solid var(--border-mid) !important;
-    border-radius: 6px !important;
-    color: var(--text-primary) !important;
+/* ── Checkboxes ───────────────────────────────────── */
+[data-testid="stCheckbox"] label {{
     font-family: var(--font-mono) !important;
-    font-size: 12px !important;
-    line-height: 1.6 !important;
-}}
-[data-testid="stTextArea"] textarea:focus {{
-    border-color: var(--tint-border) !important;
-    box-shadow: none !important;
-    outline: none !important;
+    font-size: 11px !important;
+    color: var(--text-primary) !important;
 }}
 
-/* ── Streamlit tabs ─────────────────────────────────── */
+/* ── Tabs ─────────────────────────────────────────── */
 [data-testid="stTabs"] [data-testid="stTab"] {{
     font-family: var(--font-mono) !important;
     font-size: 11px !important;
@@ -494,7 +551,18 @@ h1, h2, h3 {{
     border-bottom-color: var(--tint) !important;
 }}
 
-/* ── Alerts ─────────────────────────────────────────── */
+/* ── Progress ─────────────────────────────────────── */
+[data-testid="stProgressBar"] > div {{
+    background: var(--border-mid) !important;
+    border-radius: 2px !important;
+    height: 3px !important;
+}}
+[data-testid="stProgressBar"] > div > div {{
+    background: var(--tint) !important;
+    border-radius: 2px !important;
+}}
+
+/* ── Alerts ───────────────────────────────────────── */
 [data-testid="stInfo"],
 [data-testid="stWarning"],
 [data-testid="stError"],
@@ -505,45 +573,7 @@ h1, h2, h3 {{
     background: var(--bg-surface) !important;
 }}
 
-/* ── Progress ───────────────────────────────────────── */
-[data-testid="stProgressBar"] > div {{
-    background: var(--bg-surface) !important;
-    border-radius: 2px !important;
-    height: 3px !important;
-}}
-[data-testid="stProgressBar"] > div > div {{
-    background: var(--tint) !important;
-    border-radius: 2px !important;
-}}
-
-/* ── DataFrame ──────────────────────────────────────── */
-[data-testid="stDataFrame"] {{
-    font-family: var(--font-mono) !important;
-    font-size: 11px !important;
-}}
-
-/* ── Scrollbar ──────────────────────────────────────── */
-::-webkit-scrollbar {{ width: 4px; height: 4px; }}
-::-webkit-scrollbar-track {{ background: transparent; }}
-::-webkit-scrollbar-thumb {{
-    background: var(--border-mid);
-    border-radius: 2px;
-}}
-
-/* ── Divider ────────────────────────────────────────── */
-hr {{
-    border-color: var(--border-dim) !important;
-    opacity: 1 !important;
-}}
-
-/* ── Caption ────────────────────────────────────────── */
-[data-testid="stCaptionContainer"] p {{
-    font-family: var(--font-mono) !important;
-    font-size: 10px !important;
-    color: var(--text-secondary) !important;
-}}
-
-/* ── Download button ────────────────────────────────── */
+/* ── Download button ──────────────────────────────── */
 [data-testid="stDownloadButton"] > button {{
     background: transparent !important;
     color: var(--text-secondary) !important;
@@ -558,15 +588,31 @@ hr {{
 [data-testid="stDownloadButton"] > button:hover {{
     border-color: var(--tint-border) !important;
     color: var(--tint) !important;
+    background: var(--tint-dim) !important;
 }}
 
-/* ── Color picker ───────────────────────────────────── */
-[data-testid="stColorPicker"] {{
+/* ── Caption ──────────────────────────────────────── */
+[data-testid="stCaptionContainer"] p {{
     font-family: var(--font-mono) !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
+    color: var(--text-secondary) !important;
 }}
 
-/* ── Hide chrome ────────────────────────────────────── */
+/* ── Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar {{ width: 4px; height: 4px; }}
+::-webkit-scrollbar-track {{ background: transparent; }}
+::-webkit-scrollbar-thumb {{
+    background: var(--border-mid);
+    border-radius: 2px;
+}}
+
+/* ── Divider / hr ─────────────────────────────────── */
+hr {{
+    border-color: var(--border-dim) !important;
+    opacity: 1 !important;
+}}
+
+/* ── Hide Streamlit chrome ────────────────────────── */
 #MainMenu {{ visibility: hidden; }}
 footer     {{ visibility: hidden; }}
 header     {{ visibility: hidden; }}
@@ -575,47 +621,40 @@ header     {{ visibility: hidden; }}
     st.markdown(css, unsafe_allow_html=True)
 
 
-def topbar_html(active_tab: str, api_keys: dict[str, str]) -> str:
-    """Render topbar with active tab indicator and API dot status."""
-    tabs = [
-        ("single",  "/ scan"),
-        ("bulk",    "/ bulk"),
-        ("history", "/ history"),
-    ]
+def topbar_html(active_tab: str, api_keys: dict[str, str], mode: str = "dark") -> str:
+    tabs = [("single", "/ scan"), ("bulk", "/ bulk"),
+            ("history", "/ history"), ("settings", "/ settings")]
     tabs_html = "".join(
         f'<span class="tc-tab{" active" if k == active_tab else ""}">{label}</span>'
         for k, label in tabs
     )
-
     source_keys = ["virustotal", "abuseipdb", "shodan", "otx", "urlscan"]
     dots_html = "".join(
         f'<div class="tc-dot {"on" if api_keys.get(k, "").strip() else "off"}" '
         f'title="{k}"></div>'
         for k in source_keys
     )
-
+    mode_badge = f'<span class="tc-mode-badge">{mode}</span>'
     return f"""
 <div class="tc-topbar">
   <div class="tc-logo"><div class="tc-logo-sq"></div>THREAT·CHECK</div>
   <div class="tc-nav">{tabs_html}</div>
   <div class="tc-right">
     <div class="tc-dots">{dots_html}</div>
+    {mode_badge}
   </div>
 </div>
 """
 
 
-def stat_strip_html(
-    malicious: int, suspicious: int, clean: int, total: int
-) -> str:
-    """4-cell stat strip."""
+def stat_strip_html(mal: int, sus: int, cln: int, total: int) -> str:
     return f"""
 <div class="tc-stats">
-  <div class="tc-stat mal"><div class="tc-stat-num mal">{malicious}</div>
+  <div class="tc-stat mal"><div class="tc-stat-num mal">{mal}</div>
     <div class="tc-stat-lbl">Malicious</div></div>
-  <div class="tc-stat sus"><div class="tc-stat-num sus">{suspicious}</div>
+  <div class="tc-stat sus"><div class="tc-stat-num sus">{sus}</div>
     <div class="tc-stat-lbl">Suspicious</div></div>
-  <div class="tc-stat cln"><div class="tc-stat-num cln">{clean}</div>
+  <div class="tc-stat cln"><div class="tc-stat-num cln">{cln}</div>
     <div class="tc-stat-lbl">Clean</div></div>
   <div class="tc-stat tot"><div class="tc-stat-num tot">{total}</div>
     <div class="tc-stat-lbl">Total</div></div>
