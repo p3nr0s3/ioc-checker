@@ -40,9 +40,6 @@ class OsintResult:
     ioc_type:   IOCType
     sources:    list[SourceResult] = field(default_factory=list)
     checked_at: float = field(default_factory=time.time)
-    # ── Enrichment fields (populated by orchestrator) ──────────────
-    threat_context: Any | None = None      # ThreatContext object
-    greynoise:      Any | None = None      # GreyNoiseResult object
 
     @property
     def overall_verdict(self) -> str:
@@ -412,11 +409,8 @@ async def check_ioc_async(
         api_keys: Dict of source → API key (only sources with non-empty keys run).
 
     Returns:
-        OsintResult with all source results + threat_context + greynoise enrichment.
+        OsintResult with all source results.
     """
-    from utils.threat_context import derive_threat_context
-    from utils.greynoise_api import check_greynoise
-
     result = OsintResult(ioc=ioc, ioc_type=ioc_type)
 
     async with httpx.AsyncClient() as client:
@@ -449,24 +443,6 @@ async def check_ioc_async(
                     )
                 else:
                     result.sources.append(sr)
-
-        # ── GreyNoise enrichment (IP only) ──────────────────────────
-        gn_key = api_keys.get("greynoise", "").strip()
-        if gn_key and ioc_type == IOCType.IP:
-            try:
-                gn_result = await check_greynoise(ioc, gn_key, client)
-                result.greynoise = gn_result
-            except Exception:
-                result.greynoise = None
-
-    # ── Threat context derivation (post-gather, sync) ───────────────
-    try:
-        result.threat_context = derive_threat_context(
-            verdict=result.overall_verdict,
-            sources=result.sources,
-        )
-    except Exception:
-        result.threat_context = None
 
     return result
 
