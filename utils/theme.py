@@ -123,23 +123,30 @@ html, body,
 [data-testid="collapsedControl"] {{
     display: none !important;
 }}
-.stMainBlockContainer {{
+.stMainBlockContainer,
+[data-testid="stAppViewBlockContainer"],
+.block-container {{
+    max-width: 100% !important;
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
-    max-width: 1240px !important;
+    padding-top: 62px !important;
 }}
 
-/* ── Topbar ───────────────────────────────────────── */
+/* ── Topbar — position:fixed, true 100vw ─────────── */
 .tc-topbar {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    z-index: 9999;
     display: flex;
     align-items: stretch;
     background: var(--topbar-bg);
     border-bottom: 1px solid var(--topbar-border);
     height: 48px;
-    margin-bottom: 24px;
-    margin-left: -1.5rem;
-    margin-right: -1.5rem;
     padding: 0 1.5rem;
+    box-sizing: border-box;
 }}
 .tc-logo {{
     font-family: var(--font-display);
@@ -624,10 +631,18 @@ hr {{
     opacity: 1 !important;
 }}
 
-/* ── Hide Streamlit chrome ────────────────────────── */
-#MainMenu {{ visibility: hidden; }}
+/* ── Hide Streamlit chrome + deploy bar ──────────── */
+#MainMenu  {{ visibility: hidden; }}
 footer     {{ visibility: hidden; }}
 header     {{ visibility: hidden; }}
+/* Streamlit's own header sits above everything — push it behind our topbar */
+[data-testid="stHeader"] {{
+    display: none !important;
+}}
+/* Remove default top padding Streamlit adds for its header */
+[data-testid="stAppViewContainer"] > section:first-child {{
+    padding-top: 0 !important;
+}}
 </style>
 """
     st.markdown(css, unsafe_allow_html=True)
