@@ -362,23 +362,31 @@ html, body,
     padding: 14px 18px;
     margin: 4px 0 12px;
 }}
+/* Each source gets its own full-width block, stacked vertically */
 .tc-detail-grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }}
 .tc-src-card {{
     background: var(--bg-base);
     border: 1px solid var(--border-dim);
     border-radius: 4px;
-    padding: 10px 12px;
+    padding: 12px 16px;
+    width: 100%;
+}}
+/* KV rows inside each card laid out as a 2-col grid for alignment */
+.tc-kv-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0 24px;
 }}
 .tc-src-header {{
     font-size: 10px;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-bottom: 7px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -391,20 +399,24 @@ html, body,
 .tc-kv {{
     display: flex;
     justify-content: space-between;
-    gap: 8px;
-    padding: 2px 0;
+    gap: 12px;
+    padding: 3px 0;
     font-size: 10px;
     border-bottom: 1px solid var(--border-dim);
 }}
 .tc-kv:last-of-type {{ border-bottom: none; }}
-.tc-kv-k {{ color: var(--text-secondary); white-space: nowrap; min-width: 80px; }}
+.tc-kv-k {{
+    color: var(--text-secondary);
+    white-space: nowrap;
+    min-width: 140px;
+    flex-shrink: 0;
+}}
 .tc-kv-v {{
     color: var(--text-primary);
     text-align: right;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 58%;
+    word-break: break-word;
+    white-space: normal;
+    max-width: 100%;
 }}
 .tc-link {{
     display: inline-block;

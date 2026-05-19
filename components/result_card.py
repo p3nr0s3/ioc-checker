@@ -28,40 +28,38 @@ def _sq_cls(verdict: str) -> str:
 # ── Source detail card ────────────────────────────────────────────────────────
 
 def _source_card_html(sr: SourceResult, ioc_type: IOCType) -> str:
-    """Render one source card with IOC-type-aware detail rows."""
+    """
+    Render one source card — full width, two-column KV grid inside.
+    Values are never truncated; long strings wrap naturally.
+    """
     vcolor = VERDICT_COLORS.get(sr.verdict, "#6B7A99")
 
     verdict_span = (
-        f'<span style="color:{vcolor};font-size:9px;margin-left:4px">'
-        f'{sr.verdict.upper()}</span>'
+        f'<span style="color:{vcolor};font-size:9px;font-weight:600;'
+        f'margin-left:8px;letter-spacing:0.08em">{sr.verdict.upper()}</span>'
         if sr.verdict not in ("error", "unknown") else ""
     )
 
-    score_html = ""
+    # ── Collect all KV rows first, then render ────────────────────
+    kv_rows: list[tuple[str, str, str]] = []  # (label, display, val_style)
+
     if sr.score is not None:
-        score_html = (
-            f'<div class="tc-kv">'
-            f'<span class="tc-kv-k">score</span>'
-            f'<span class="tc-kv-v" style="color:{vcolor}">{sr.score:.0f}/100</span>'
+        kv_rows.append(("score", f"{sr.score:.0f} / 100",
+                         f'style="color:{vcolor};font-weight:600"'))
+
+    if sr.error:
+        header = (
+            f'<div class="tc-src-card">'
+            f'<div class="tc-src-header">'
+            f'<div class="tc-src-vdot" style="background:{vcolor}"></div>'
+            f'{sr.source}{verdict_span}'
+            f'</div>'
+            f'<div style="font-size:10px;color:#FF6B6B;padding:4px 0">⚠ {sr.error}</div>'
             f'</div>'
         )
+        return header
 
-    body = f"""
-<div class="tc-src-card">
-  <div class="tc-src-header">
-    <div class="tc-src-vdot" style="background:{vcolor}"></div>
-    {sr.source}{verdict_span}
-  </div>
-  {score_html}
-"""
-    if sr.error:
-        body += (
-            f'<div style="font-size:10px;color:#FF6B6B;padding:4px 0">'
-            f'⚠ {sr.error}</div>'
-        )
-        return body + "</div>"
-
-    # IOC-type-aware fields from export mapping
+    # IOC-type-aware fields
     fields = _get_fields_for(sr.source, ioc_type)
     shown  = 0
     for detail_key, col_suffix in fields:
@@ -72,42 +70,57 @@ def _source_card_html(sr: SourceResult, ioc_type: IOCType) -> str:
         if not display:
             continue
         label = col_suffix.replace("_", " ")
-        # Highlight important values
+
         val_style = ""
-        if detail_key in ("confidence_score", "engines_malicious") and isinstance(val, (int, float)) and val > 0:
-            val_style = f'style="color:{vcolor}"'
+        if detail_key in ("confidence_score", "engines_malicious") \
+                and isinstance(val, (int, float)) and val > 0:
+            val_style = f'style="color:{vcolor};font-weight:600"'
         elif detail_key == "is_tor" and val is True:
-            val_style = 'style="color:#FF6B6B"'
-        elif detail_key in ("vuln_count", "pulse_count") and isinstance(val, (int, float)) and val > 0:
+            val_style = 'style="color:#FF6B6B;font-weight:600"'
+        elif detail_key in ("vuln_count", "pulse_count") \
+                and isinstance(val, (int, float)) and val > 0:
+            val_style = f'style="color:{vcolor};font-weight:600"'
+        elif detail_key in ("total_reports", "num_distinct_users") \
+                and isinstance(val, int) and val > 100:
             val_style = f'style="color:{vcolor}"'
 
-        body += (
+        kv_rows.append((label, display, val_style))
+        shown += 1
+
+    # Fallback if no mapped fields
+    if shown == 0 and sr.details:
+        for k, v in list(sr.details.items())[:12]:
+            display = _fmt(v)
+            if display:
+                kv_rows.append((k.replace("_", " "), display, ""))
+
+    # ── Build HTML ────────────────────────────────────────────────
+    kv_html = ""
+    for label, display, val_style in kv_rows:
+        kv_html += (
             f'<div class="tc-kv">'
             f'<span class="tc-kv-k">{label}</span>'
             f'<span class="tc-kv-v" {val_style}>{display}</span>'
             f'</div>'
         )
-        shown += 1
 
-    # Fallback: show raw details if no mapped fields matched
-    if shown == 0 and sr.details:
-        for k, v in list(sr.details.items())[:8]:
-            display = _fmt(v)
-            if display:
-                body += (
-                    f'<div class="tc-kv">'
-                    f'<span class="tc-kv-k">{k.replace("_", " ")}</span>'
-                    f'<span class="tc-kv-v">{display}</span>'
-                    f'</div>'
-                )
-
+    link_html = ""
     if sr.url:
-        body += (
+        link_html = (
             f'<a class="tc-link" href="{sr.url}" target="_blank">'
-            f'↗ view report</a>'
+            f'↗ view full report</a>'
         )
 
-    return body + "</div>"
+    return (
+        f'<div class="tc-src-card">'
+        f'<div class="tc-src-header">'
+        f'<div class="tc-src-vdot" style="background:{vcolor}"></div>'
+        f'{sr.source}{verdict_span}'
+        f'</div>'
+        f'<div class="tc-kv-grid">{kv_html}</div>'
+        f'{link_html}'
+        f'</div>'
+    )
 
 
 # ── Table header ──────────────────────────────────────────────────────────────
@@ -185,9 +198,7 @@ def render_result_row(result: OsintResult, idx: int) -> None:
             for sr in result.sources
         )
         st.markdown(
-            f'<div class="tc-detail">'
-            f'<div class="tc-detail-grid">{cards_html}</div>'
-            f'</div>',
+            f'<div class="tc-detail tc-detail-grid">{cards_html}</div>',
             unsafe_allow_html=True,
         )
 
