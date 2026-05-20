@@ -362,68 +362,103 @@ html, body,
 .tc-verdict.unk {{ color: var(--text-secondary); }}
 
 /* ── Detail panel ─────────────────────────────────── */
+/* ── Detail panel wrapper ───────────────────────── */
 .tc-detail {{
     background: var(--bg-surface);
     border: 1px solid var(--border-dim);
-    border-radius: 6px;
-    padding: 14px 18px;
+    border-radius: 8px;
+    padding: 0;
     margin: 4px 0 12px;
+    overflow: hidden;
 }}
-/* Each source gets its own full-width block, stacked vertically */
+
+/* Each source = one full-width section */
 .tc-detail-grid {{
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
 }}
+
+/* Source section header bar */
 .tc-src-card {{
-    background: var(--bg-base);
-    border: 1px solid var(--border-dim);
-    border-radius: 4px;
-    padding: 12px 16px;
-    width: 100%;
+    border-bottom: 1px solid var(--border-dim);
+    padding: 0;
 }}
-/* KV rows inside each card laid out as a 2-col grid for alignment */
-.tc-kv-grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 0 24px;
-}}
+.tc-src-card:last-child {{ border-bottom: none; }}
+
 .tc-src-header {{
-    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }}
 .tc-src-vdot {{
-    width: 6px; height: 6px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
 }}
+.tc-src-score-badge {{
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}}
+
+/* KV table inside each source — fixed 2-col layout */
+.tc-kv-grid {{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 4px 0 8px;
+}}
 .tc-kv {{
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 3px 0;
-    font-size: 10px;
+    align-items: baseline;
+    gap: 0;
+    padding: 5px 20px;
+    font-size: 11px;
     border-bottom: 1px solid var(--border-dim);
 }}
-.tc-kv:last-of-type {{ border-bottom: none; }}
+.tc-kv:nth-last-child(-n+2) {{
+    border-bottom: none;
+}}
 .tc-kv-k {{
     color: var(--text-secondary);
     white-space: nowrap;
-    min-width: 140px;
+    width: 160px;
     flex-shrink: 0;
+    font-size: 10px;
+    letter-spacing: 0.03em;
 }}
 .tc-kv-v {{
     color: var(--text-primary);
-    text-align: right;
+    font-size: 11px;
     word-break: break-word;
     white-space: normal;
-    max-width: 100%;
+    flex: 1;
+    min-width: 0;
+}}
+
+/* Full-span KV row (for long values like comments, CVE lists) */
+.tc-kv.full-span {{
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--border-dim);
+}}
+.tc-kv.full-span:last-child {{ border-bottom: none; }}
+
+/* Report link */
+.tc-src-footer {{
+    padding: 8px 20px;
+    border-top: 1px solid var(--border-dim);
+    background: var(--bg-hover);
 }}
 .tc-link {{
     display: inline-block;
