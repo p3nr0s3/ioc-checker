@@ -174,7 +174,7 @@ html, body,
     display: inline-flex;
     align-items: center;
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     border-bottom: 1px solid transparent;
     letter-spacing: 0.08em;
@@ -228,7 +228,7 @@ html, body,
 .tc-stat-num.cln {{ color: var(--v-cln); }}
 .tc-stat-num.tot {{ color: var(--tint);  }}
 .tc-stat-lbl {{
-    font-size: 9px;
+    font-size: 10px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -248,7 +248,7 @@ html, body,
 .tc-prompt {{
     padding: 0 14px;
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--tint);
     border-right: 1px solid var(--tint-dim);
     background: var(--tint-dim);
@@ -271,7 +271,7 @@ html, body,
     border-radius: 0 !important;
     padding: 10px 14px !important;
     font-family: var(--font-mono) !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
     color: var(--text-primary) !important;
     box-shadow: none !important;
     outline: none !important;
@@ -292,7 +292,7 @@ html, body,
     border-bottom: none;
 }}
 .tc-th {{
-    font-size: 9px;
+    font-size: 10px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -317,14 +317,14 @@ html, body,
 .tc-row:last-child {{ border-bottom: none; }}
 .tc-row:hover {{ background: var(--bg-hover); }}
 .tc-ioc {{
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     padding-right: 10px;
 }}
-.tc-ioc-type {{ font-size: 10px; color: var(--text-secondary); }}
+.tc-ioc-type {{ font-size: 11px; color: var(--text-secondary); }}
 .tc-score-wrap {{
     display: flex;
     align-items: center;
@@ -339,12 +339,12 @@ html, body,
     overflow: hidden;
 }}
 .tc-score-fill {{ height: 100%; border-radius: 2px; }}
-.tc-score-val {{ font-size: 10px; min-width: 22px; text-align: right; }}
+.tc-score-val {{ font-size: 11px; min-width: 22px; text-align: right; }}
 .tc-srcs {{ display: flex; gap: 3px; }}
 .tc-sq {{
     width: 16px; height: 16px;
     border-radius: 2px;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -355,7 +355,7 @@ html, body,
 .tc-sq.sus {{ background: rgba(255,217,61,0.15);  color: #FFD93D; }}
 .tc-sq.cln {{ background: rgba(80,250,123,0.12);  color: #50FA7B; }}
 .tc-sq.unk {{ background: var(--sq-unk-bg); color: var(--sq-unk-fg); }}
-.tc-verdict {{ font-size: 10px; text-align: right; font-weight: 500; letter-spacing: 0.06em; }}
+.tc-verdict {{ font-size: 11px; text-align: right; font-weight: 500; letter-spacing: 0.06em; }}
 .tc-verdict.mal {{ color: var(--v-mal); }}
 .tc-verdict.sus {{ color: var(--v-sus); }}
 .tc-verdict.cln {{ color: var(--v-cln); }}
@@ -394,7 +394,7 @@ html, body,
     background: var(--bg-hover);
     border-bottom: 1px solid var(--border-dim);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
@@ -424,7 +424,7 @@ html, body,
     align-items: baseline;
     gap: 0;
     padding: 5px 20px;
-    font-size: 11px;
+    font-size: 12px;
     border-bottom: 1px solid var(--border-dim);
 }}
 .tc-kv:nth-last-child(-n+2) {{
@@ -435,12 +435,12 @@ html, body,
     white-space: nowrap;
     width: 160px;
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 0.03em;
 }}
 .tc-kv-v {{
     color: var(--text-primary);
-    font-size: 11px;
+    font-size: 12px;
     word-break: break-word;
     white-space: normal;
     flex: 1;
@@ -494,7 +494,7 @@ html, body,
     margin-bottom: 2px;
 }}
 .tc-src-types {{
-    font-size: 9px;
+    font-size: 10px;
     color: var(--text-dim);
     letter-spacing: 0.04em;
 }}
@@ -502,7 +502,7 @@ html, body,
 
 /* ── Misc UI ──────────────────────────────────────── */
 .tc-section {{
-    font-size: 9px;
+    font-size: 10px;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.16em;
@@ -539,7 +539,7 @@ html, body,
     border: 1px solid var(--tint-border) !important;
     border-radius: 4px !important;
     font-family: var(--font-mono) !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     font-weight: 600 !important;
     letter-spacing: 0.12em !important;
     text-transform: uppercase !important;
@@ -567,7 +567,7 @@ html, body,
     border-radius: 6px !important;
     color: var(--text-primary) !important;
     font-family: var(--font-mono) !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
 }}
 [data-testid="stTextInput"] input:focus,
 [data-testid="stTextArea"] textarea:focus {{
@@ -634,7 +634,7 @@ html, body,
     border: 1px solid var(--border-mid) !important;
     border-radius: 4px !important;
     font-family: var(--font-mono) !important;
-    font-size: 10px !important;
+    font-size: 11px !important;
     letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
     padding: 0.35rem 0.8rem !important;
@@ -648,7 +648,7 @@ html, body,
 /* ── Caption ──────────────────────────────────────── */
 [data-testid="stCaptionContainer"] p {{
     font-family: var(--font-mono) !important;
-    font-size: 10px !important;
+    font-size: 11px !important;
     color: var(--text-secondary) !important;
 }}
 
